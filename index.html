@@ -2,19 +2,20 @@
 <html lang="fa">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ماشین حساب هزینه تمام شده</title>
 
 <style>
-@font-face {
-  font-family: "B Yekan";
-  src: local("B Yekan"), local("BYekan"), local("Yekan");
-}
+
+
 @font-face {
   font-family: "vazirmatn";
-  src: local("vazirmatn"), local("Vazirmatn");
+  src: url("vazirmatn.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
 }
 *{
-  font-family: "vazirmatn","B Yekan","Yekan",Tahoma;
+  font-family: "vazirmatn", Tahoma, Arial, sans-serif;
 }
 body{
   direction:rtl;
@@ -92,6 +93,57 @@ button{
 button:hover{
   background:#eee;
 }
+
+/* ================= موبایل ================= */
+@media (max-width: 600px) {
+
+  body{
+    padding:10px;
+    font-size:16px;
+  }
+
+  /* دکمه‌ها و nav */
+  nav button{
+    display:block;
+    width:100%;
+    margin:5px 0;
+    padding:12px;
+    box-sizing:border-box;
+  }
+
+  /* جداول قابل اسکرول افقی */
+  table{
+    width:100%;
+    display:block;
+    overflow-x:auto;
+  }
+
+  table th, table td{
+    padding:6px;
+    font-size:14px;
+  }
+
+  /* فرم‌ها */
+  input, select, button{
+    width:100%;
+    box-sizing:border-box;
+    font-size:16px;
+    margin-bottom:5px;
+  }
+
+  /* باکس‌ها */
+  .box{
+    padding:10px;
+    margin-bottom:12px;
+  }
+
+  /* نتیجه */
+  .result{
+    font-size:18px;
+    word-break:break-word;
+  }
+}
+
 </style>
 
 </head>
@@ -194,7 +246,7 @@ button:hover{
 </table>
 
 <div class="result">
-قیمت تمام شده: <span id="recipeCost">0</span> تومان
+قیمت تمام شده: <span id="recipeCost">0</span>
 </div>
 </section>
 
@@ -339,8 +391,11 @@ function separate(n){
  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,",");
 }
 function cleanNumber(v){
- return parseInt(v.replace(/,/g,"")) || 0;
-}
+  // تبدیل اعداد فارسی به انگلیسی
+  const persian = "۰۱۲۳۴۵۶۷۸۹";
+  const english = "0123456789";
+  v = v.replace(/[۰-۹]/g, d => english[persian.indexOf(d)]);
+  return parseInt(v.replace(/,/g,"")) || 0;}
 function formatInput(el){
  el.value = separate(cleanNumber(el.value));
 }
@@ -435,6 +490,8 @@ function renderRecipeList(){
  recipes.forEach(rc=>{
   c.innerHTML+=`<option value="${rc.id}">${rc.name}</option>`;
  });
+ 
+ fillCapMaterial();
 
  renderRecipeItems();
 }
@@ -453,9 +510,11 @@ function fillCapMaterial(){
     if(m)
       sel.innerHTML += `<option value="${i.material}">${m.name}</option>`;
   });
+
+  // انتخاب اولین گزینه به صورت پیش‌فرض
+  if(sel.options.length>0) sel.selectedIndex = 0;
 }
 
-fillCapMaterial();
 
 function addIngredient(){
  let rid=document.getElementById("recSelect").value;
@@ -509,7 +568,8 @@ function renderRecipeItems(){
    </tr>`;
  });
 
- document.getElementById("recipeCost").innerText=separate(Math.round(total));
+ document.getElementById("recipeCost").innerText =
+  `قیمت تمام شده هر ${r.name} ${separate(Math.round(total))} تومان است.`;
 }
 
 // ================= ظرفیت =================
