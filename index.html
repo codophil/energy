@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>ماشین حساب هزینه تمام شده</title>
+
+<style>
+@font-face {
+  font-family: "B Yekan";
+  src: local("B Yekan"), local("BYekan"), local("Yekan");
+}
+@font-face {
+  font-family: "vazirmatn";
+  src: local("vazirmatn"), local("Vazirmatn");
+}
+*{
+  font-family: "vazirmatn","B Yekan","Yekan",Tahoma;
+}
+body{
+  direction:rtl;
+  background:#f7f7f7;
+  padding:20px;
+}
+h2{margin-bottom:10px}
+nav button{
+  margin:5px;
+  padding:10px 18px;
+  border-radius:6px;
+  border:1px solid #777;
+  cursor:pointer;
+  background:white;
+}
+nav button:hover{background:#eee}
+section{
+  display:none;
+  margin-top:20px;
+  padding:15px;
+  background:white;
+  border-radius:10px;
+  box-shadow:0 0 8px #ccc;
+}
+table{
+  border-collapse:collapse;
+  width:100%;
+  margin-top:10px;
+  background:white;
+}
+td,th{
+  border:1px solid #aaa;
+  padding:7px;
+  text-align:center
+}
+input,select{
+  padding:7px;
+  border-radius:6px;
+  border:1px solid #aaa
+}
+button{cursor:pointer}
+.box{
+  border:1px solid #aaa;
+  padding:12px;
+  border-radius:8px;
+  margin-bottom:15px;
+}
+.result{
+  font-size:22px;
+  font-weight:bold;
+  color:#0a5
+}
+.deleteBtn{
+  background:#c62828;
+  color:white;
+  border:none;
+  padding:4px 10px;
+  border-radius:6px;
+}
+.deleteBtn:hover{background:#e53935}
+.editBtn{
+  background:#1976d2;
+  color:white;
+  border:none;
+  padding:4px 10px;
+  border-radius:6px;
+}
+.editBtn:hover{background:#2196f3}
+button{
+  padding:8px 16px;
+  border-radius:6px;
+  border:1px solid #666;
+  background:#fff;
+}
+button:hover{
+  background:#eee;
+}
+</style>
+
+</head>
+<body>
+
+<h2>ماشین حساب فست فود انرژی</h2>
+
+<nav>
+<button onclick="show('materials')">مواد اولیه</button>
+<button onclick="show('recipes')">تعریف غذا / ترکیب</button>
+<button onclick="show('capacity')">ماشین حساب ظرفیت</button>
+</nav>
+
+<!-- ================= مواد اولیه ================= -->
+<section id="materials">
+<h3>مواد اولیه</h3>
+
+<div class="box">
+نام ماده:
+<input id="matName">
+
+واحد خرید:
+<select id="matUnit">
+<option value="kg">کیلو</option>
+<option value="ltr">لیتر</option>
+<option value="unit">عدد</option>
+</select>
+
+قیمت (تومان):
+<input type="text" id="matPrice" oninput="formatInput(this)">
+
+<button onclick="addMaterial()" id="matBtn">افزودن</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>نام</th>
+<th>واحد</th>
+<th>قیمت</th>
+<th>ویرایش</th>
+<th>حذف</th>
+</tr>
+</thead>
+<tbody id="matTable"></tbody>
+</table>
+<br><br>
+<div class="box">
+  <button onclick="exportData()">دانلود داده‌ها (Export JSON)</button>
+  <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+  <button onclick="document.getElementById('importFile').click()">بارگذاری داده‌ها (Import JSON)</button>
+</div>
+
+</section>
+
+
+<!-- ================= تعریف غذا ================= -->
+<section id="recipes">
+<h3>تعریف غذا / ترکیب</h3>
+
+<div class="box">
+نام محصول جدید:
+<input id="recName">
+<button onclick="addRecipe()">ایجاد</button>
+</div>
+
+<div class="box">
+انتخاب محصول:
+<select id="recSelect" onchange="renderRecipeItems()"></select>
+<button class="deleteBtn" onclick="deleteRecipe()">حذف محصول</button>
+</div>
+
+<div class="box">
+ماده مصرفی:
+<select id="ingredientSelect"></select>
+
+مقدار:
+<input type="number" id="ingredientAmount">
+
+واحد:
+<select id="ingredientUnit">
+<option value="g">گرم</option>
+<option value="cc">سی‌سی</option>
+<option value="unit">عدد</option>
+</select>
+
+<button onclick="addIngredient()">افزودن</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>ماده</th>
+<th>مقدار</th>
+<th>هزینه</th>
+<th>حذف</th>
+</tr>
+</thead>
+<tbody id="recipeTable"></tbody>
+</table>
+
+<div class="result">
+قیمت تمام شده: <span id="recipeCost">0</span> تومان
+</div>
+</section>
+
+<!-- ================= ظرفیت ================= -->
+<section id="capacity">
+<h3>ماشین حساب ظرفیت تولید</h3>
+
+<div class="box">
+انتخاب محصول:
+<select id="capSelect" onchange="fillCapMaterial(); updateCapacity()"></select>
+
+<br><br>
+انتخاب ماده مبنا:
+<select id="capMaterial" onchange="updateCapacity()"></select>
+
+<br><br>
+
+مقدار موجود:
+<input type="number" id="capAmount">
+
+واحد:
+<select id="capUnit">
+  <option value="kg">کیلو</option>
+  <option value="g">گرم</option>
+  <option value="ltr">لیتر</option>
+  <option value="cc">سی‌سی</option>
+  <option value="unit">عدد</option>
+</select>
+
+<button onclick="updateCapacity()">محاسبه</button>
+</div>
+
+<div class="result">
+تعداد قابل تولید: <span id="capResult">0</span>
+</div>
+
+</section>
+
+<script>
+let materials = JSON.parse(localStorage.getItem("materials") || "[]");
+let recipes   = JSON.parse(localStorage.getItem("recipes") || "[]");
+
+let editMaterialId = null;
+
+function save(){
+  let selectedRecipe = document.getElementById("recSelect")?.value;
+  let selectedCap    = document.getElementById("capSelect")?.value;
+
+  localStorage.setItem("materials",JSON.stringify(materials));
+  localStorage.setItem("recipes",JSON.stringify(recipes));
+
+  renderMaterials();
+  renderRecipeList();
+
+  if(selectedRecipe)
+    document.getElementById("recSelect").value = selectedRecipe;
+
+  if(selectedCap)
+    document.getElementById("capSelect").value = selectedCap;
+
+  renderRecipeItems();
+}
+
+// تبدیل تاریخ میلادی به شمسی
+function toJalali(gDate){
+  const gy = gDate.getFullYear();
+  const gm = gDate.getMonth()+1;
+  const gd = gDate.getDate();
+
+  const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+  let jy = (gy <= 1600) ? 0 : 979;
+  let gy2 = (gy <= 1600) ? gy-621 : gy-1600;
+  let days = 365*gy2 + Math.floor((gy2+3)/4) - Math.floor((gy2+99)/100) + Math.floor((gy2+399)/400) + gd + g_d_m[gm-1] - 80;
+  let jy2 = Math.floor(days/365.2422);
+  let jday = days - Math.floor(jy2*365.2422);
+  let jm, jd;
+
+  if(jday < 186){
+    jm = 1 + Math.floor(jday/31);
+    jd = 1 + (jday % 31);
+  } else {
+    jm = 7 + Math.floor((jday-186)/30);
+    jd = 1 + ((jday-186) % 30);
+  }
+  jy += jy2;
+  return {jy,jm,jd};
+}
+
+// تابع Export نهایی
+function exportData(){
+  const data = { materials, recipes };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+
+  // گرفتن تاریخ شمسی امروز
+  const gDate = new Date();
+  const j = toJalali(gDate);
+  const filename = `energy_data_${j.jy}-${String(j.jm).padStart(2,'0')}-${String(j.jd).padStart(2,'0')}.json`;
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // بررسی اینکه ساختار درست باشد
+      if(data.materials && data.recipes){
+        materials = data.materials;
+        recipes   = data.recipes;
+        save();  // ذخیره و رندر مجدد جدول‌ها
+        alert("داده‌ها با موفقیت بارگذاری شد!");
+      } else {
+        alert("فرمت فایل اشتباه است. مطمئن شوید فایل JSON معتبر است.");
+      }
+    } catch(err){
+      alert("فایل معتبر نیست یا خراب است.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+
+// ================= صفحات =================
+function show(id){
+ document.querySelectorAll("section").forEach(s=>s.style.display="none");
+ document.getElementById(id).style.display="block";
+}
+show("materials");
+
+// ================= فرمت قیمت =================
+function separate(n){
+ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,",");
+}
+function cleanNumber(v){
+ return parseInt(v.replace(/,/g,"")) || 0;
+}
+function formatInput(el){
+ el.value = separate(cleanNumber(el.value));
+}
+
+// ================= مواد اولیه =================
+function addMaterial(){
+ let name=document.getElementById("matName").value.trim();
+ let unit=document.getElementById("matUnit").value;
+ let price=cleanNumber(document.getElementById("matPrice").value);
+
+ if(!name || !price) return alert("اطلاعات کامل نیست");
+
+ if(editMaterialId){
+   let m = materials.find(x=>x.id===editMaterialId);
+   m.name=name;
+   m.unit=unit;
+   m.price=price;
+   editMaterialId=null;
+   document.getElementById("matBtn").innerText="افزودن";
+ }else{
+   materials.push({id:Date.now(),name,unit,price});
+ }
+
+ document.getElementById("matName").value="";
+ document.getElementById("matPrice").value="";
+ save();
+}
+
+function editMaterial(id){
+ let m = materials.find(x=>x.id===id);
+ document.getElementById("matName").value=m.name;
+ document.getElementById("matUnit").value=m.unit;
+ document.getElementById("matPrice").value=separate(m.price);
+ editMaterialId=id;
+ document.getElementById("matBtn").innerText="ذخیره تغییرات";
+}
+
+function deleteMaterial(id){
+ materials = materials.filter(m=>m.id!==id);
+ save();
+}
+
+function renderMaterials(){
+ let t=document.getElementById("matTable");
+ t.innerHTML="";
+ materials.forEach(m=>{
+  t.innerHTML+=`
+  <tr>
+   <td>${m.name}</td>
+   <td>${m.unit=="kg"?"کیلو":m.unit=="ltr"?"لیتر":"عدد"}</td>
+   <td>${separate(m.price)}</td>
+   <td><button class="editBtn" onclick="editMaterial(${m.id})">ویرایش</button></td>
+   <td><button class="deleteBtn" onclick="deleteMaterial(${m.id})">حذف</button></td>
+  </tr>`;
+ });
+
+ let ing=document.getElementById("ingredientSelect");
+ ing.innerHTML="";
+ materials.forEach(m=>{
+  ing.innerHTML+=`<option value="${m.id}">${m.name}</option>`;
+ });
+}
+renderMaterials();
+
+// ================= غذا =================
+function addRecipe(){
+ let name=document.getElementById("recName").value.trim();
+ if(!name) return alert("نام وارد شود");
+ recipes.push({id:Date.now(),name,items:[]});
+ document.getElementById("recName").value="";
+ save();
+}
+
+function deleteRecipe(){
+ let rid=document.getElementById("recSelect").value;
+ if(!rid) return;
+ if(!confirm("حذف شود؟")) return;
+ recipes = recipes.filter(r=>r.id!=rid);
+ save();
+ renderRecipeItems();
+}
+
+function renderRecipeList(){
+ let r=document.getElementById("recSelect");
+ r.innerHTML="";
+ recipes.forEach(rc=>{
+  r.innerHTML+=`<option value="${rc.id}">${rc.name}</option>`;
+ });
+
+ let c=document.getElementById("capSelect");
+ c.innerHTML="";
+ recipes.forEach(rc=>{
+  c.innerHTML+=`<option value="${rc.id}">${rc.name}</option>`;
+ });
+
+ renderRecipeItems();
+}
+renderRecipeList();
+
+function fillCapMaterial(){
+  let rid = document.getElementById("capSelect").value;
+  let r = recipes.find(r=>r.id==rid);
+  let sel = document.getElementById("capMaterial");
+  sel.innerHTML = "";
+
+  if(!r) return;
+
+  r.items.forEach(i=>{
+    let m = materials.find(x=>x.id==i.material);
+    if(m)
+      sel.innerHTML += `<option value="${i.material}">${m.name}</option>`;
+  });
+}
+
+fillCapMaterial();
+
+function addIngredient(){
+ let rid=document.getElementById("recSelect").value;
+ let iid=document.getElementById("ingredientSelect").value;
+ let amount=parseFloat(document.getElementById("ingredientAmount").value);
+ let unit=document.getElementById("ingredientUnit").value;
+
+ if(!amount) return alert("مقدار وارد شود");
+ let r=recipes.find(r=>r.id==rid);
+ r.items.push({material:iid,amount,unit});
+ document.getElementById("ingredientAmount").value="";
+ save();
+ renderRecipeItems();
+}
+
+function deleteIngredient(index){
+ let rid=document.getElementById("recSelect").value;
+ let r=recipes.find(r=>r.id==rid);
+ r.items.splice(index,1);
+ save();
+ renderRecipeItems();
+}
+
+function materialCost(matId,amount){
+ let m=materials.find(x=>x.id==matId);
+ if(!m) return 0;
+ let p = m.price;
+ if(m.unit=="kg" || m.unit=="ltr") p = m.price / 1000;
+ return p * amount;
+}
+
+function renderRecipeItems(){
+ let rid=document.getElementById("recSelect").value;
+ let r=recipes.find(r=>r.id==rid);
+ if(!r) return;
+ let t=document.getElementById("recipeTable");
+ t.innerHTML="";
+ let total=0;
+
+ r.items.forEach((i,idx)=>{
+  let m=materials.find(x=>x.id==i.material);
+  let cost=materialCost(i.material,i.amount);
+  total+=cost;
+
+  t.innerHTML+=`
+   <tr>
+    <td>${m?m.name:"?"}</td>
+    <td>${i.amount} ${i.unit=="g"?"گرم":i.unit=="cc"?"سی‌سی":"عدد"}</td>
+    <td>${separate(Math.round(cost))}</td>
+    <td><button class="deleteBtn" onclick="deleteIngredient(${idx})">حذف</button></td>
+   </tr>`;
+ });
+
+ document.getElementById("recipeCost").innerText=separate(Math.round(total));
+}
+
+// ================= ظرفیت =================
+function updateCapacity(){
+  let rid = document.getElementById("capSelect").value;
+  let mid = document.getElementById("capMaterial").value;
+  let amount = parseFloat(document.getElementById("capAmount").value);
+  let unit   = document.getElementById("capUnit").value;
+
+  let r = recipes.find(r=>r.id==rid);
+  if(!r || !amount) {
+    document.getElementById("capResult").innerText = "0";
+    return;
+  }
+
+  let item = r.items.find(i=>i.material==mid);
+  if(!item) {
+    document.getElementById("capResult").innerText = "0";
+    return;
+  }
+
+  // تبدیل واحد ورودی به همان واحدی که ترکیب استفاده می‌کند
+  let factor = 1;
+  if(unit=="kg" && item.unit=="g") factor = 1000;
+  if(unit=="ltr" && item.unit=="cc") factor = 1000;
+  // اگر واحدها همخوانی دارند یا عدد است factor=1
+
+  let amountInItemUnit = amount * factor;
+
+  let perItem = item.amount; // item.amount به گرم/سی‌سی/عدد
+  let count = perItem ? Math.floor(amountInItemUnit / perItem) : 0;
+
+  let m = materials.find(x=>x.id==mid);
+  let materialName = m ? m.name : "?";
+
+  document.getElementById("capResult").innerText =
+    `با ${separate(amount)} ${unit=="kg"?"کیلو":unit=="g"?"گرم":unit=="ltr"?"لیتر":unit=="cc"?"سی‌سی":"عدد"} ${materialName} می‌توان ${separate(count)} ${r.name} تولید کرد.`;
+}
+
+
+</script>
+
+</body>
+</html>
